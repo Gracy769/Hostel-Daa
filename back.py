@@ -1,97 +1,70 @@
-import time
-import pandas as pd
+from flask import Flask, render_template, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+import pandas as pd
+import time
 
-class VTOPBackend:
-    def __init__(self):
-        print("Initializing VTOP Backend... 🚀")
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-        self.base_url = "https://vtopcc.vit.ac.in/vtop/open/page"
-    
-    def login_and_start(self):
-        """Opens VTOP and waits for the user to manually log in."""
-        print(f"Opening {self.base_url}...")
-        self.driver.get(self.base_url)
-        print("\n" + "="*50)
-        print("ACTION REQUIRED: Please manually log in to VTOP in the browser window.")
-        print("The Captcha is the final boss here, so I'll let you handle it. 😉")
-        print("Once you are on the Dashboard (Home Page), press ENTER here to continue.")
-        print("="*50 + "\n")
-        input("Press Enter after you have successfully logged in...")
+app = Flask(__name__)
 
-    def scrape_tables(self, page_name):
-        """Scrapes all tables from the current page and returns them as DataFrames."""
-        print(f"\n🔍 Scraping data for: {page_name}...")
-        
-        # specific wait to ensure table loads
-        time.sleep(2) 
-        
-        soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-        tables = soup.find_all('table')
-        
-        if not tables:
-            print(f"⚠️ No tables found on the {page_name} page.")
-            return None
-        
-        data_frames = []
-        for i, table in enumerate(tables):
-            try:
-                # pandas reads html tables directly
-                df = pd.read_html(str(table))[0]
-                data_frames.append(df)
-            except Exception as e:
-                print(f"Could not parse table {i}: {e}")
-        
-        return data_frames
+# Global driver to keep the browser open
+driver = None
 
-    def get_user_data(self):
-        """Orchestrates the navigation and data fetching."""
+def init_driver():
+    global driver
+    if driver is None:
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/launch-vtop')
+def launch_vtop():
+    """Opens VTOP so you can log in."""
+    init_driver()
+    driver.get("https://vtopcc.vit.ac.in/vtop/open/page")
+    return jsonify({"status": "Browser Opened. Please Log in manually!"})
+
+@app.route('/scrape-data')
+def scrape_data():
+    """Navigates to pages and scrapes data once you are logged in."""
+    global driver
+    if not driver:
+        return jsonify({"error": "Browser not started"}), 400
+
+    data = {
+        "student": {"name": "Fetched User", "regNo": "Fetched ID", "cgpa": "--"}, 
+        "attendance": [],
+        "hostel": {"block": "--", "room": "--", "mess": "--"}
+    }
+
+    try:
+        # 1. SCRAPE ATTENDANCE
+        # You must navigate to the page. VTOP URLs are dynamic, so we rely on user clicking or menu navigation.
+        # Ideally, we automate the menu click, but VTOP menus are tricky. 
+        # For this v1, we assume the user is on the dashboard or we try to find the menu.
+        
+        # Simpler approach: We look at whatever page is open. 
+        # But to be useful, let's try to grab the Student Profile info first if available on home screen.
+        
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+        
+        # Try to find Name/RegNo on the dashboard (Sidebar or Topbar)
+        # Note: Selectors below are guesses based on standard VTOP structure; might need tweaking.
         try:
-            self.login_and_start()
-
-            # 1. ATTENDANCE
-            print("\n👉 Please Navigate to the 'Attendance' page in the browser.")
-            input("Press Enter once the Attendance table is visible...")
-            attendance_data = self.scrape_tables("Attendance")
-            if attendance_data:
-                print("\n✅ ATTENDANCE SUMMARY:")
-                # Usually the main attendance is the last or largest table
-                for df in attendance_data:
-                    if len(df) > 1: # Filter out tiny layout tables
-                        print(df.to_string())
-                        print("-" * 20)
-
-            # 2. CGPA / GRADES
-            print("\n👉 Please Navigate to the 'Grades' / 'History of Grades' page.")
-            input("Press Enter once the Grades table is visible...")
-            grade_data = self.scrape_tables("Grades/CGPA")
-            if grade_data:
-                print("\n✅ ACADEMIC HISTORY (CGPA):")
-                for df in grade_data:
-                    print(df.head()) # Showing head to avoid spamming console
-                    print("-" * 20)
-
-            # 3. MESS / HOSTEL
-            print("\n👉 Please Navigate to the 'Hostel' or 'Mess' details page.")
-            input("Press Enter once the details are visible...")
-            hostel_data = self.scrape_tables("Hostel/Mess")
-            if hostel_data:
-                print("\n✅ HOSTEL & MESS DETAILS:")
-                for df in hostel_data:
-                    print(df.to_string())
-            
-            print("\n🎉 Data extraction complete! You can close the browser.")
-
-        except Exception as e:
-            print(f"❌ An error occurred: {e}")
-        finally:
-            # self.driver.quit() # Uncomment to auto-close browser
+            profile_text = soup.find(text=lambda t: "Welcome" in t or "Reg No" in t)
+            if profile_text:
+                data['student']['name'] = "Found User" # VTOP hides this well
+        except:
             pass
 
-if __name__ == "__main__":
-    backend = VTOPBackend()
-    backend.get_user_data()
+        # 2. INSTRUCT USER (The limitation of VTOP Automation)
+        # Since VTOP uses dynamic sessions, fully automated navigation often breaks.
+        # We will scrape the CURRENT active table on the screen.
+        
+        tables = pd.read_html(driver.page_source)
+        
+        # LOGIC: If we find a table that looks like attendance, we parse it.
+        for

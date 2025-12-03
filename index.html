@@ -3,280 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTOP Student Dashboard</title>
+    <title>VTOP Real-Time Dashboard</title>
     <style>
-        :root {
-            --primary: #2563eb;
-            --secondary: #475569;
-            --bg-dark: #0f172a;
-            --card-bg: #1e293b;
-            --text-light: #f8fafc;
-            --text-gray: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
-        }
+        :root { --primary: #2563eb; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; padding: 20px; }
+        
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        
+        .controls { background: #334155; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #64748b; cursor: not-allowed; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+        .status { margin-left: auto; color: #94a3b8; font-family: monospace; }
 
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-light);
-            padding: 20px;
-        }
-
-        /* Header */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .user-info h1 {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-
-        .user-info p {
-            color: var(--text-gray);
-            font-size: 0.9rem;
-        }
-
-        .status-badge {
-            background-color: var(--success);
-            color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        /* Grid Layout */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        /* Cards */
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid #334155;
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #334155;
-        }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-
-        /* Data Display */
-        .stat-big {
-            font-size: 2.5rem;
-            font-weight: bold;
-        }
-
-        .stat-label {
-            color: var(--text-gray);
-            font-size: 0.9rem;
-        }
-
-        /* Tables */
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        th {
-            text-align: left;
-            padding: 12px;
-            color: var(--text-gray);
-            border-bottom: 1px solid #334155;
-        }
-
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #334155;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        .attendance-high { color: var(--success); }
-        .attendance-low { color: var(--danger); }
-
-        /* Buttons */
-        .btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .btn:hover { opacity: 0.9; }
-
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; }
+        
+        .card { background: var(--card); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .pct-high { color: #10b981; font-weight: bold; }
+        .pct-low { color: #ef4444; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="user-info">
-            <h1>Welcome back, <span id="studentName">Student</span></h1>
-            <p>ID: <span id="regNo">25BEEXXXX</span> | VTOP Dashboard</p>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1 id="sName">Welcome, User</h1>
+            <p id="sReg">Not Connected</p>
         </div>
-        <span class="status-badge">Fall Semester 2025-26</span>
-    </header>
-
-    <div class="dashboard-grid">
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Current CGPA</span>
-            </div>
-            <div class="stat-big" id="cgpaDisplay">--</div>
-            <div class="stat-label">Last Updated: Just now</div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Hostel Info</span>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div><small style="color:#94a3b8">Block:</small> <span id="blockDisplay">--</span></div>
-                <div><small style="color:#94a3b8">Room:</small> <span id="roomDisplay">--</span></div>
-                <div><small style="color:#94a3b8">Mess:</small> <span id="messDisplay">--</span></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">System Status</span>
-            </div>
-            <p style="color: var(--text-gray); margin-bottom: 10px;">Backend Connection</p>
-            <button class="btn" onclick="fetchData()">Refresh Data</button>
+        <div>
+            <h2>FALL 2025-26</h2>
         </div>
     </div>
 
-    <div class="card" style="margin-bottom: 20px;">
-        <div class="card-header">
-            <span class="card-title">Detailed Attendance</span>
-        </div>
-        <div class="table-container">
-            <table id="attendanceTable">
-                <thead>
-                    <tr>
-                        <th>Course Code</th>
-                        <th>Course Title</th>
-                        <th>Type</th>
-                        <th>Slot</th>
-                        <th>Attended</th>
-                        <th>Percentage</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td colspan="6" style="text-align: center;">Loading data...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="controls">
+        <button onclick="launchBrowser()" id="btnLaunch">1. Launch VTOP</button>
+        <button onclick="fetchData()" id="btnFetch" disabled>2. Fetch Table Data</button>
+        <div class="status" id="statusMsg">Status: Waiting for you to launch...</div>
     </div>
 
-    <script>
-        // --- MOCK DATA ---
-        // This is where your Python backend would inject JSON data
-        // For now, I am simulating it so you can see the layout.
+    <div class="card">
+        <h3>Live Data Extraction</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem;">
+            Instructions: <br>
+            1. Click "Launch VTOP" and log in manually in the new window.<br>
+            2. Navigate to the page you want to see (e.g., "Attendance") in that window.<br>
+            3. Come back here and click "Fetch Table Data".
+        </p>
         
-        const mockData = {
-            student: {
-                name: "Shouradeep Nag",
-                regNo: "25BEE1121",
-                cgpa: "9.2"
-            },
-            hostel: {
-                block: "D-Block",
-                room: "402",
-                mess: "Special Mess (Non-Veg)"
-            },
-            attendance: [
-                { code: "BEE1001", title: "Principal Electrical Engineering", type: "Theory", slot: "A1", attended: "24/25", pct: 96 },
-                { code: "PHY1001", title: "Engineering Physics", type: "Lab", slot: "L2", attended: "10/10", pct: 100 },
-                { code: "MAT2001", title: "Calculus & Laplace", type: "Theory", slot: "C1", attended: "18/22", pct: 81 },
-                { code: "ENG101",  title: "Technical English", type: "Soft Skill", slot: "D1", attended: "15/15", pct: 100 }
-            ]
-        };
+        <table>
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Slot</th>
+                    <th>Attended</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="6">No data fetched yet.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-        function fetchData() {
-            // In a real scenario, this would be: 
-            // fetch('http://localhost:5000/api/data').then(res => res.json()).then(data => updateUI(data));
+<script>
+    async function launchBrowser() {
+        document.getElementById('statusMsg').innerText = "Status: Opening Chrome...";
+        const res = await fetch('/launch-vtop');
+        const data = await res.json();
+        document.getElementById('statusMsg').innerText = "Status: " + data.status;
+        document.getElementById('btnFetch').disabled = false;
+        document.getElementById('btnLaunch').innerText = "Browser Open";
+    }
+
+    async function fetchData() {
+        document.getElementById('statusMsg').innerText = "Status: Scraping current page...";
+        
+        try {
+            const res = await fetch('/scrape-data');
+            const data = await res.json();
+
+            if (data.error) {
+                alert("Error: " + data.error);
+                return;
+            }
+
+            // Update Header (If we found profile info)
+            if(data.student.name !== "Fetched User") {
+                document.getElementById('sName').innerText = data.student.name;
+            }
             
-            console.log("Fetching data from backend...");
-            updateUI(mockData);
+            // Populate Table
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = "";
+            
+            if (data.attendance.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='6'>No table found on current VTOP page! Please navigate to Attendance in the open window.</td></tr>";
+            } else {
+                data.attendance.forEach(row => {
+                    const colorClass = row.pct < 75 ? 'pct-low' : 'pct-high';
+                    const html = `
+                        <tr>
+                            <td>${row.code}</td>
+                            <td>${row.title}</td>
+                            <td>${row.type}</td>
+                            <td>${row.slot}</td>
+                            <td>${row.attended}</td>
+                            <td class="${colorClass}">${row.pct}%</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += html;
+                });
+                document.getElementById('statusMsg').innerText = "Status: Data Updated!";
+            }
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('statusMsg').innerText = "Status: Error fetching data.";
         }
+    }
+</script>
 
-        function updateUI(data) {
-            // Update Header
-            document.getElementById('studentName').innerText = data.student.name;
-            document.getElementById('regNo').innerText = data.student.regNo;
-            document.getElementById('cgpaDisplay').innerText = data.student.cgpa;
-
-            // Update Hostel
-            document.getElementById('blockDisplay').innerText = data.hostel.block;
-            document.getElementById('roomDisplay').innerText = data.hostel.room;
-            document.getElementById('messDisplay').innerText = data.hostel.mess;
-
-            // Update Attendance Table
-            const tbody = document.querySelector('#attendanceTable tbody');
-            tbody.innerHTML = ''; // Clear loading text
-
-            data.attendance.forEach(course => {
-                const colorClass = course.pct < 75 ? 'attendance-low' : 'attendance-high';
-                
-                const row = `
-                    <tr>
-                        <td style="font-weight:bold; color:white;">${course.code}</td>
-                        <td>${course.title}</td>
-                        <td>${course.type}</td>
-                        <td>${course.slot}</td>
-                        <td>${course.attended}</td>
-                        <td class="${colorClass}" style="font-weight:bold;">${course.pct}%</td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
-            });
-        }
-
-        // Load data on start
-        window.onload = fetchData;
-    </script>
 </body>
 </html>

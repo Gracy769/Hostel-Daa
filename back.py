@@ -1,70 +1,48 @@
-from flask import Flask, render_template, jsonify
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
-import pandas as pd
-import time
+import openai
+from flask import Flask, request, jsonify
 
+# Initialize Flask app
 app = Flask(__name__)
 
-# Global driver to keep the browser open
-driver = None
+# Set your OpenAI API key here
+openai.api_key = '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'
 
-def init_driver():
-    global driver
-    if driver is None:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+# Memory to hold conversation history (optional, but makes the bot more dynamic)
+conversation_history = []
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Function to generate response from GPT-3 (or GPT-4)
+def generate_response(user_message):
+    # Add the user message to the conversation history for context
+    conversation_history.append({"role": "user", "content": user_message})
+    
+    # Get response from OpenAI's GPT-3 (or GPT-4)
+    response = openai.ChatCompletion.create(
+        model="gpt-4",  # You can use gpt-3.5-turbo or any available model
+        messages=conversation_history,
+        max_tokens=150,  # Limit response length
+        temperature=0.9,  # Make responses more creative
+    )
 
-@app.route('/launch-vtop')
-def launch_vtop():
-    """Opens VTOP so you can log in."""
-    init_driver()
-    driver.get("https://vtopcc.vit.ac.in/vtop/open/page")
-    return jsonify({"status": "Browser Opened. Please Log in manually!"})
+    # Extract the text response from the model
+    bot_response = response['choices'][0]['message']['content']
+    
+    # Add bot response to conversation history
+    conversation_history.append({"role": "assistant", "content": bot_response})
+    
+    return bot_response
 
-@app.route('/scrape-data')
-def scrape_data():
-    """Navigates to pages and scrapes data once you are logged in."""
-    global driver
-    if not driver:
-        return jsonify({"error": "Browser not started"}), 400
+# Define API endpoint to interact with the chatbot
+@app.route('/chat', methods=['POST'])
+def chat():
+    user_input = request.json.get('message')
+    
+    if not user_input:
+        return jsonify({"error": "No message provided"}), 400
 
-    data = {
-        "student": {"name": "Fetched User", "regNo": "Fetched ID", "cgpa": "--"}, 
-        "attendance": [],
-        "hostel": {"block": "--", "room": "--", "mess": "--"}
-    }
+    # Generate response based on user input
+    bot_output = generate_response(user_input)
+    
+    return jsonify({"response": bot_output})
 
-    try:
-        # 1. SCRAPE ATTENDANCE
-        # You must navigate to the page. VTOP URLs are dynamic, so we rely on user clicking or menu navigation.
-        # Ideally, we automate the menu click, but VTOP menus are tricky. 
-        # For this v1, we assume the user is on the dashboard or we try to find the menu.
-        
-        # Simpler approach: We look at whatever page is open. 
-        # But to be useful, let's try to grab the Student Profile info first if available on home screen.
-        
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        
-        # Try to find Name/RegNo on the dashboard (Sidebar or Topbar)
-        # Note: Selectors below are guesses based on standard VTOP structure; might need tweaking.
-        try:
-            profile_text = soup.find(text=lambda t: "Welcome" in t or "Reg No" in t)
-            if profile_text:
-                data['student']['name'] = "Found User" # VTOP hides this well
-        except:
-            pass
-
-        # 2. INSTRUCT USER (The limitation of VTOP Automation)
-        # Since VTOP uses dynamic sessions, fully automated navigation often breaks.
-        # We will scrape the CURRENT active table on the screen.
-        
-        tables = pd.read_html(driver.page_source)
-        
-        # LOGIC: If we find a table that looks like attendance, we parse it.
-        for
+if __name__ == '__main__':
+    app.run(debug=True)

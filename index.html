@@ -1,136 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VTOP Real-Time Dashboard</title>
-    <style>
-        :root { --primary: #2563eb; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
-        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; padding: 20px; }
-        
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        
-        .controls { background: #334155; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-        
-        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1rem; }
-        button:hover { opacity: 0.9; }
-        button:disabled { background: #64748b; cursor: not-allowed; }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Friendly AI Chatbot</title>
 
-        .status { margin-left: auto; color: #94a3b8; font-family: monospace; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; }
-        th { color: #94a3b8; }
-        
-        .card { background: var(--card); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .pct-high { color: #10b981; font-weight: bold; }
-        .pct-low { color: #ef4444; font-weight: bold; }
-    </style>
+    <!-- Link CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
+
 <body>
 
-<div class="container">
-    <div class="header">
-        <div>
-            <h1 id="sName">Welcome, User</h1>
-            <p id="sReg">Not Connected</p>
+    <div class="chat-container">
+
+        <!-- Chat Messages -->
+        <div class="chat-box" id="chat-box">
+            <!-- Messages will appear here -->
         </div>
-        <div>
-            <h2>FALL 2025-26</h2>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <input 
+                type="text" 
+                id="user-input" 
+                placeholder="Type a message…" 
+                onkeydown="if(event.key === 'Enter') sendMessage();"
+            />
+            <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 
-    <div class="controls">
-        <button onclick="launchBrowser()" id="btnLaunch">1. Launch VTOP</button>
-        <button onclick="fetchData()" id="btnFetch" disabled>2. Fetch Table Data</button>
-        <div class="status" id="statusMsg">Status: Waiting for you to launch...</div>
-    </div>
-
-    <div class="card">
-        <h3>Live Data Extraction</h3>
-        <p style="color: #94a3b8; font-size: 0.9rem;">
-            Instructions: <br>
-            1. Click "Launch VTOP" and log in manually in the new window.<br>
-            2. Navigate to the page you want to see (e.g., "Attendance") in that window.<br>
-            3. Come back here and click "Fetch Table Data".
-        </p>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Title</th>
-                    <th>Type</th>
-                    <th>Slot</th>
-                    <th>Attended</th>
-                    <th>%</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <tr><td colspan="6">No data fetched yet.</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<script>
-    async function launchBrowser() {
-        document.getElementById('statusMsg').innerText = "Status: Opening Chrome...";
-        const res = await fetch('/launch-vtop');
-        const data = await res.json();
-        document.getElementById('statusMsg').innerText = "Status: " + data.status;
-        document.getElementById('btnFetch').disabled = false;
-        document.getElementById('btnLaunch').innerText = "Browser Open";
-    }
-
-    async function fetchData() {
-        document.getElementById('statusMsg').innerText = "Status: Scraping current page...";
-        
-        try {
-            const res = await fetch('/scrape-data');
-            const data = await res.json();
-
-            if (data.error) {
-                alert("Error: " + data.error);
-                return;
-            }
-
-            // Update Header (If we found profile info)
-            if(data.student.name !== "Fetched User") {
-                document.getElementById('sName').innerText = data.student.name;
-            }
-            
-            // Populate Table
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = "";
-            
-            if (data.attendance.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='6'>No table found on current VTOP page! Please navigate to Attendance in the open window.</td></tr>";
-            } else {
-                data.attendance.forEach(row => {
-                    const colorClass = row.pct < 75 ? 'pct-low' : 'pct-high';
-                    const html = `
-                        <tr>
-                            <td>${row.code}</td>
-                            <td>${row.title}</td>
-                            <td>${row.type}</td>
-                            <td>${row.slot}</td>
-                            <td>${row.attended}</td>
-                            <td class="${colorClass}">${row.pct}%</td>
-                        </tr>
-                    `;
-                    tbody.innerHTML += html;
-                });
-                document.getElementById('statusMsg').innerText = "Status: Data Updated!";
-            }
-
-        } catch (err) {
-            console.error(err);
-            document.getElementById('statusMsg').innerText = "Status: Error fetching data.";
-        }
-    }
-</script>
+    <!-- Link JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
 </body>
 </html>
